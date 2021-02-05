@@ -1,67 +1,121 @@
-import React, { useState } from "react";
+import cx from "classnames";
+import { Component } from "react";
+
+class TodoForm extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      newTodoTitle: "",
+    };
+  }
+  onFormSubmit = (e) => {
+    e.preventDefault();
+    if (this.state.newTodoTitle) {
+      this.props.addItem({
+        title: this.state.newTodoTitle,
+      });
+    }
+  };
+  onChangeNewTodo = (e) => {
+    this.setState({
+      newTodoTitle: e.target.value,
+    });
+  };
+  render() {
+    return (
+      <form onSubmit={this.onFormSubmit}>
+        <input type="text" onChange={this.onChangeNewTodo}></input>
+        <button type="submit" disabled={!this.state.newTodoTitle.length}>
+          Add
+        </button>
+      </form>
+    );
+  }
+}
+
+const getRemainingCount = (items) => {
+  const itemsCount = items.filter((item) => !item.complete);
+  return itemsCount.length;
+};
 
 const TodoListItem = ({ id, title, complete, toggleComplete }) => {
   const className = complete ? "is-done" : "";
-  return <li className={className} onClick={() => toggleComplete({ id })}>{title}</li>;
-};
-
-const NewTodoForm = ({ addTodo }) => {
-  const [newTodoTitle, setNewTodo] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    addTodo({
-      title: newTodoTitle,
-    });
-
-    setNewTodo("");
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        value={newTodoTitle}
-        onChange={(e) => setNewTodo(e.target.value)}
-      />
-      <button disabled={!newTodoTitle.length} type="submit">
-        Add
-      </button>
-    </form>
+    <li className={className} onClick={() => toggleComplete({ id })}>
+      {title}
+    </li>
   );
 };
 
-export const TodoList = () => {
-  const [todos, setTodos] = useState([]);
+class TodoItems extends Component {
+  render() {
+    const { items, toggleComplete } = this.props;
+    return (
+      <>
+        <div>
+          {`${getRemainingCount(items)} remaining out of ${items.length} tasks`}
+        </div>
 
-  const addTodo = (todo) => {
-    todo.id = todos.length;
-    setTodos([...todos, todo]);
+        <ul>
+          {items &&
+            items.map((item, i) => {
+              return (
+                <TodoListItem
+                  key={i}
+                  {...item}
+                  toggleComplete={toggleComplete}
+                />
+              );
+            })}
+        </ul>
+      </>
+    );
+  }
+}
+
+export default class TodoList extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { todoItems: [{ title: "asd", complete: false }] };
+  }
+
+  addItem = (todo) => {
+    todo.id = this.state.todoItems.length;
+    this.setState({
+      todoItems: [...this.state.todoItems, todo],
+    });
   };
 
-  const toggleComplete = ({ id }) => {
-    const newTodos = todos.map((todo) => {
+  toggleComplete = ({ id }) => {
+    const newTodos = this.state.todoItems.map((todo) => {
       return {
         ...todo,
         complete: todo.id === id ? !todo.complete : todo.complete,
       };
     });
-    setTodos(newTodos)
+    this.setState({
+      todoItems: newTodos,
+    });
   };
 
-  const remainingCount = todos.reduce((prev, next) => {
-    return next.complete ? prev : prev += 1
-  }, 0)
-
-  return (
-    <div>
-      <NewTodoForm addTodo={addTodo} />
-      <ul>
-        {todos.map((todo, i) => (
-          <TodoListItem key={i} toggleComplete={toggleComplete} {...todo} />
-        ))}
-      </ul>
-      <p>{`${remainingCount} remaining out of ${todos.length}`}</p>
-    </div>
-  );
-};
+  render() {
+    return (
+      <>
+        <div>
+          <h2>Todo List</h2>
+          <TodoForm addItem={this.addItem} />
+          <TodoItems
+            items={this.state.todoItems}
+            deleteItem={this.deleteItem}
+            toggleComplete={this.toggleComplete}
+          />
+        </div>
+        <style>{`
+                    .is-done {
+                        text-decoration: line-through;
+                    }
+                `}</style>
+      </>
+    );
+  }
+}
